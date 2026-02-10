@@ -1,65 +1,38 @@
-import express from "express";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import User from "../models/User.js";
-import dotenv from "dotenv";
+import express from "express"
+import { body } from "express-validator"
+import { register, login, refreshToken, logout } from "../controllers/authController.js"
+import { validateRequest } from "../middleware/validateRequest.js"
+import { protect } from "../middleware/authMiddleware.js"
 
-dotenv.config();
-const router = express.Router();
+const router = express.Router()
 
-// ===== Регистрируем нового пользователя =====
-router.post("/register", async (req, res) => {
-  const { name, email, password, role } = req.body;
+// Регистрация
+router.post(
+  "/register",
+  [
+    body("name").notEmpty().withMessage("Имя обязательно"),
+    body("email").isEmail().withMessage("Некорректный email"),
+    body("password").isLength({ min: 6 }).withMessage("Пароль должен быть не менее 6 символов"),
+  ],
+  validateRequest,
+  register,
+)
 
-  try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: "Пользователь уже существует" });
+// Логин
+router.post(
+  "/login",
+  [
+    body("email").isEmail().withMessage("Некорректный email"),
+    body("password").notEmpty().withMessage("Пароль обязателен"),
+  ],
+  validateRequest,
+  login,
+)
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({ name, email, password: hashedPassword, role });
+// Обновление access token по refresh token (из cookie)
+router.post("/refresh", refreshToken)
 
-    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
-    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+// Выход (очистка refresh cookie)
+router.post("/logout", protect, logout)
 
-    res.status(201).json({ user, accessToken, refreshToken });
-  } catch (error) {
-    res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-// ===== Логин пользователя =====
-router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Неверный email или пароль" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: "Неверный email или пароль" });
-
-    const accessToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
-    const refreshToken = jwt.sign({ id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
-
-    res.json({ user, accessToken, refreshToken });
-  } catch (error) {
-    res.status(500).json({ message: "Ошибка сервера" });
-  }
-});
-
-// ===== Обновление Access Token =====
-router.post("/refresh", async (req, res) => {
-  const { refreshToken } = req.body;
-  if (!refreshToken) return res.status(401).json({ message: "Токен отсутствует" });
-
-  try {
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    const accessToken = jwt.sign({ id: decoded.id }, process.env.JWT_SECRET, { expiresIn: "15m" });
-
-    res.json({ accessToken });
-  } catch (error) {
-    res.status(403).json({ message: "Токен недействителен" });
-  }
-});
-
-export default router;
+export default router
