@@ -2,10 +2,14 @@
 
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { products } from "@/lib/mock-data"
+import type { Product } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 
-export function PopularSection() {
+interface PopularSectionProps {
+  products: Product[]
+}
+
+export function PopularSection({ products }: PopularSectionProps) {
   const popularProducts = products.filter((p) => p.isPopular).slice(0, 4)
 
   return (

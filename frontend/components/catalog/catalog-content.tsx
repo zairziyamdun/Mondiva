@@ -1,9 +1,12 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { SlidersHorizontal, X, ChevronDown } from "lucide-react"
-import { products, categories } from "@/lib/mock-data"
+import { SlidersHorizontal, X } from "lucide-react"
+import type { Category, Product } from "@/lib/types"
+import { normalizeCategory, normalizeProduct } from "@/lib/types"
+import type { ApiCategory, ApiProduct } from "@/lib/types"
+import { api } from "@/lib/api"
 import { ProductCard } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -11,16 +14,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 
-const allBrands = [...new Set(products.map((p) => p.brand))]
-const allColors = [...new Set(products.flatMap((p) => p.colors))]
-const allSizes = [...new Set(products.flatMap((p) => p.sizes))]
-
 type SortOption = "new" | "price-asc" | "price-desc" | "popular"
 
 export function CatalogContent() {
   const searchParams = useSearchParams()
   const initialCategory = searchParams.get("category") || ""
   const initialFilter = searchParams.get("filter") || ""
+
+  const [categories, setCategories] = useState<Category[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(true)
+  const [loadingProducts, setLoadingProducts] = useState(true)
 
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
@@ -32,13 +36,44 @@ export function CatalogContent() {
   )
   const [showOnlySale, setShowOnlySale] = useState(initialFilter === "sale")
   const [showOnlyNew, setShowOnlyNew] = useState(initialFilter === "new")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  useEffect(() => {
+    api.get<ApiCategory[]>("/api/categories").then((res) => {
+      if (res.ok) {
+        const list = (res.data ?? []).map((c) => normalizeCategory(c)).filter(Boolean) as Category[]
+        setCategories(list)
+      }
+      setLoadingCategories(false)
+    })
+  }, [])
+
+  useEffect(() => {
+    setLoadingProducts(true)
+    const params = new URLSearchParams()
+    if (selectedCategory) params.set("categorySlug", selectedCategory)
+    params.set("minPrice", String(priceRange[0]))
+    params.set("maxPrice", String(priceRange[1]))
+    if (searchQuery.trim()) params.set("search", searchQuery.trim())
+    api
+      .get<ApiProduct[]>(`/api/products?${params.toString()}`)
+      .then((res) => {
+        if (res.ok) {
+          const list = (res.data ?? []).map((p) => normalizeProduct(p)).filter(Boolean) as Product[]
+          setProducts(list)
+        } else {
+          setProducts([])
+        }
+        setLoadingProducts(false)
+      })
+  }, [selectedCategory, priceRange[0], priceRange[1], searchQuery])
+
+  const allBrands = useMemo(() => [...new Set(products.map((p) => p.brand))], [products])
+  const allColors = useMemo(() => [...new Set(products.flatMap((p) => p.colors))], [products])
+  const allSizes = useMemo(() => [...new Set(products.flatMap((p) => p.sizes))], [products])
 
   const filteredProducts = useMemo(() => {
     let result = [...products]
-
-    if (selectedCategory) {
-      result = result.filter((p) => p.categorySlug === selectedCategory)
-    }
     if (selectedBrands.length > 0) {
       result = result.filter((p) => selectedBrands.includes(p.brand))
     }
@@ -48,13 +83,8 @@ export function CatalogContent() {
     if (selectedSizes.length > 0) {
       result = result.filter((p) => p.sizes.some((s) => selectedSizes.includes(s)))
     }
-    result = result.filter((p) => p.price >= priceRange[0] && p.price <= priceRange[1])
-    if (showOnlySale) {
-      result = result.filter((p) => p.discount)
-    }
-    if (showOnlyNew) {
-      result = result.filter((p) => p.isNew)
-    }
+    if (showOnlySale) result = result.filter((p) => p.discount)
+    if (showOnlyNew) result = result.filter((p) => p.isNew)
 
     switch (sortBy) {
       case "new":
@@ -70,15 +100,21 @@ export function CatalogContent() {
         result.sort((a, b) => b.reviewCount - a.reviewCount)
         break
     }
-
     return result
-  }, [selectedCategory, selectedBrands, selectedColors, selectedSizes, priceRange, sortBy, showOnlySale, showOnlyNew])
+  }, [products, selectedBrands, selectedColors, selectedSizes, sortBy, showOnlySale, showOnlyNew])
 
   const toggleArrayItem = (arr: string[], item: string) =>
     arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item]
 
   const hasActiveFilters =
-    selectedCategory || selectedBrands.length > 0 || selectedColors.length > 0 || selectedSizes.length > 0 || showOnlySale || showOnlyNew || priceRange[0] > 0 || priceRange[1] < 25000
+    selectedCategory ||
+    selectedBrands.length > 0 ||
+    selectedColors.length > 0 ||
+    selectedSizes.length > 0 ||
+    showOnlySale ||
+    showOnlyNew ||
+    priceRange[0] > 0 ||
+    priceRange[1] < 25000
 
   const clearFilters = () => {
     setSelectedCategory("")
@@ -92,9 +128,10 @@ export function CatalogContent() {
 
   const filterContent = (
     <div className="space-y-6">
-      {/* Category */}
       <div>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Категория</h3>
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Категория
+        </h3>
         <div className="space-y-2">
           <button
             type="button"
@@ -103,22 +140,27 @@ export function CatalogContent() {
           >
             Все категории
           </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setSelectedCategory(cat.slug)}
-              className={`block w-full text-left text-sm transition-colors ${selectedCategory === cat.slug ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {cat.name}
-            </button>
-          ))}
+          {loadingCategories ? (
+            <p className="text-sm text-muted-foreground">Загрузка...</p>
+          ) : (
+            categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.slug)}
+                className={`block w-full text-left text-sm transition-colors ${selectedCategory === cat.slug ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {cat.name}
+              </button>
+            ))
+          )}
         </div>
       </div>
 
-      {/* Price */}
       <div>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Цена</h3>
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Цена
+        </h3>
         <Slider
           min={0}
           max={25000}
@@ -133,65 +175,73 @@ export function CatalogContent() {
         </div>
       </div>
 
-      {/* Brand */}
-      <div>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Бренд</h3>
-        <div className="space-y-2">
-          {allBrands.map((brand) => (
-            <label key={brand} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
-              <Checkbox
-                checked={selectedBrands.includes(brand)}
-                onCheckedChange={() => setSelectedBrands(toggleArrayItem(selectedBrands, brand))}
-              />
-              {brand}
-            </label>
-          ))}
+      {allBrands.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Бренд
+          </h3>
+          <div className="space-y-2">
+            {allBrands.map((brand) => (
+              <label key={brand} className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+                <Checkbox
+                  checked={selectedBrands.includes(brand)}
+                  onCheckedChange={() => setSelectedBrands(toggleArrayItem(selectedBrands, brand))}
+                />
+                {brand}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Color */}
-      <div>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Цвет</h3>
-        <div className="flex flex-wrap gap-2">
-          {allColors.map((color) => (
-            <button
-              key={color}
-              type="button"
-              onClick={() => setSelectedColors(toggleArrayItem(selectedColors, color))}
-              className={`rounded-full border px-3 py-1 text-xs transition-colors ${
-                selectedColors.includes(color)
-                  ? "border-foreground bg-foreground text-primary-foreground"
-                  : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-              }`}
-            >
-              {color}
-            </button>
-          ))}
+      {allColors.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Цвет
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {allColors.map((color) => (
+              <button
+                key={color}
+                type="button"
+                onClick={() => setSelectedColors(toggleArrayItem(selectedColors, color))}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                  selectedColors.includes(color)
+                    ? "border-foreground bg-foreground text-primary-foreground"
+                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                }`}
+              >
+                {color}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Size */}
-      <div>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">Размер</h3>
-        <div className="flex flex-wrap gap-2">
-          {allSizes.map((size) => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => setSelectedSizes(toggleArrayItem(selectedSizes, size))}
-              className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-xs font-medium transition-colors ${
-                selectedSizes.includes(size)
-                  ? "border-foreground bg-foreground text-primary-foreground"
-                  : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
-              }`}
-            >
-              {size}
-            </button>
-          ))}
+      {allSizes.length > 0 && (
+        <div>
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Размер
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {allSizes.map((size) => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setSelectedSizes(toggleArrayItem(selectedSizes, size))}
+                className={`flex h-9 min-w-9 items-center justify-center rounded-lg border px-2 text-xs font-medium transition-colors ${
+                  selectedSizes.includes(size)
+                    ? "border-foreground bg-foreground text-primary-foreground"
+                    : "border-border text-muted-foreground hover:border-foreground hover:text-foreground"
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Extra */}
       <div className="space-y-2">
         <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
           <Checkbox checked={showOnlyNew} onCheckedChange={(c) => setShowOnlyNew(!!c)} />
@@ -213,20 +263,17 @@ export function CatalogContent() {
 
   return (
     <div className="flex gap-8">
-      {/* Desktop sidebar */}
       <aside className="hidden w-60 shrink-0 lg:block">{filterContent}</aside>
 
-      {/* Main content */}
       <div className="flex-1">
-        {/* Top bar */}
         <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            {filteredProducts.length}{" "}
-            {filteredProducts.length === 1 ? "товар" : filteredProducts.length < 5 ? "товара" : "товаров"}
+            {loadingProducts
+              ? "Загрузка..."
+              : `${filteredProducts.length} ${filteredProducts.length === 1 ? "товар" : filteredProducts.length < 5 ? "товара" : "товаров"}`}
           </p>
 
           <div className="flex items-center gap-3">
-            {/* Sort */}
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
               <SelectTrigger className="w-44 text-sm">
                 <SelectValue placeholder="Сортировка" />
@@ -239,7 +286,6 @@ export function CatalogContent() {
               </SelectContent>
             </Select>
 
-            {/* Mobile filter */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="outline" size="icon" className="lg:hidden bg-transparent">
@@ -254,8 +300,13 @@ export function CatalogContent() {
           </div>
         </div>
 
-        {/* Products grid */}
-        {filteredProducts.length > 0 ? (
+        {loadingProducts ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="aspect-[3/4] animate-pulse rounded-2xl bg-secondary" />
+            ))}
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:gap-6">
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
@@ -263,9 +314,7 @@ export function CatalogContent() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <p className="font-serif text-xl font-semibold text-foreground">
-              Ничего не найдено
-            </p>
+            <p className="font-serif text-xl font-semibold text-foreground">Ничего не найдено</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Попробуйте изменить параметры фильтрации
             </p>

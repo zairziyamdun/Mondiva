@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { Check, ChevronRight, MapPin, CreditCard, Truck, ShoppingBag } from "lucide-react"
 import { useCart } from "@/lib/cart-store"
-import { formatPrice } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
+import { api } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,6 +19,18 @@ const steps = [
   { id: 4, name: "Подтверждение", icon: Check },
 ]
 
+const deliveryLabels: Record<string, string> = {
+  courier: "Курьерская доставка",
+  cdek: "СДЭК",
+  post: "Почта России",
+}
+
+const paymentLabels: Record<string, string> = {
+  card: "Банковская карта",
+  sbp: "СБП",
+  cash: "При получении",
+}
+
 export function CheckoutContent() {
   const { items, total, clearCart } = useCart()
   const [step, setStep] = useState(1)
@@ -25,6 +38,9 @@ export function CheckoutContent() {
   const [delivery, setDelivery] = useState("courier")
   const [payment, setPayment] = useState("card")
   const [orderPlaced, setOrderPlaced] = useState(false)
+  const [orderId, setOrderId] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   if (items.length === 0 && !orderPlaced) {
     return (
@@ -49,12 +65,21 @@ export function CheckoutContent() {
         <p className="mt-2 max-w-md text-sm text-muted-foreground">
           Спасибо за покупку! Мы отправим вам уведомление о статусе заказа на указанный номер телефона.
         </p>
-        <p className="mt-4 text-sm font-medium text-foreground">
-          {"Номер заказа: ORD-"}{String(Date.now()).slice(-6)}
-        </p>
-        <Link href="/" className="mt-6">
-          <Button className="rounded-full px-8">На главную</Button>
-        </Link>
+        {orderId && (
+          <p className="mt-4 text-sm font-medium text-foreground">
+            Номер заказа: {orderId}
+          </p>
+        )}
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link href="/account?tab=orders">
+            <Button variant="outline" className="rounded-full px-8">
+              Мои заказы
+            </Button>
+          </Link>
+          <Link href="/">
+            <Button className="rounded-full px-8">На главную</Button>
+          </Link>
+        </div>
       </div>
     )
   }
@@ -258,18 +283,52 @@ export function CheckoutContent() {
                 </p>
               </div>
             </div>
+            {submitError && (
+              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {submitError}
+              </p>
+            )}
             <div className="flex gap-3">
               <Button variant="outline" className="rounded-full bg-transparent" onClick={() => setStep(3)}>
                 Назад
               </Button>
               <Button
                 className="rounded-full"
-                onClick={() => {
-                  clearCart()
-                  setOrderPlaced(true)
+                disabled={submitting}
+                onClick={async () => {
+                  setSubmitError(null)
+                  const addressLine = [address.city, address.street, address.apartment].filter(Boolean).join(", ")
+                  if (!addressLine.trim() || !address.name?.trim() || !address.phone?.trim()) {
+                    setSubmitError("Заполните имя, телефон и адрес доставки")
+                    return
+                  }
+                  setSubmitting(true)
+                  const res = await api.post<{ _id: string }>("/api/orders", {
+                    items: items.map((i) => ({
+                      productId: i.productId,
+                      name: i.name,
+                      image: i.image ?? "",
+                      size: i.size,
+                      color: i.color,
+                      quantity: i.quantity,
+                      price: i.price,
+                    })),
+                    total: grandTotal,
+                    address: addressLine,
+                    deliveryMethod: deliveryLabels[delivery] ?? delivery,
+                    paymentMethod: paymentLabels[payment] ?? payment,
+                  })
+                  setSubmitting(false)
+                  if (res.ok) {
+                    setOrderId(res.data._id ?? null)
+                    clearCart()
+                    setOrderPlaced(true)
+                  } else {
+                    setSubmitError(res.error?.message ?? "Не удалось оформить заказ")
+                  }
                 }}
               >
-                Оплатить {formatPrice(grandTotal)}
+                {submitting ? "Отправка..." : `Оплатить ${formatPrice(grandTotal)}`}
               </Button>
             </div>
           </div>

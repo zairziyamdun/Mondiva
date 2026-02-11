@@ -2,10 +2,14 @@
 
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { products } from "@/lib/mock-data"
+import type { Product } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 
-export function NewArrivalsSection() {
+interface NewArrivalsSectionProps {
+  products: Product[]
+}
+
+export function NewArrivalsSection({ products }: NewArrivalsSectionProps) {
   const newProducts = products.filter((p) => p.isNew).slice(0, 4)
 
   return (

@@ -2,7 +2,8 @@
 
 import { Edit, Plus, Trash2 } from "lucide-react"
 import { AdminShell } from "@/components/admin/admin-shell"
-import { products, formatPrice } from "@/lib/mock-data"
+import { products } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 

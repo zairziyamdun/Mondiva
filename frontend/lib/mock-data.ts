@@ -350,7 +350,3 @@ export const users: User[] = [
   { id: "4", email: "admin@mondiva.com", name: "Администратор", role: "admin", createdAt: "2025-01-01" },
   { id: "5", email: "logistics@mondiva.com", name: "Логист Иванов", role: "logistics", createdAt: "2025-01-01" },
 ]
-
-export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("ru-RU", { style: "currency", currency: "RUB", minimumFractionDigits: 0 }).format(price)
-}

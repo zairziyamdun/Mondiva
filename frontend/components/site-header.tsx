@@ -2,9 +2,16 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { Heart, Menu, Search, ShoppingBag, User, X } from "lucide-react"
+import { Heart, LogOut, Menu, Search, ShoppingBag, User, X } from "lucide-react"
 import { useCart } from "@/lib/cart-store"
+import { useAuth } from "@/lib/auth-context"
 import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 const navigation = [
@@ -16,6 +23,7 @@ const navigation = [
 
 export function SiteHeader() {
   const { count } = useCart()
+  const { user, logout } = useAuth()
   const [searchOpen, setSearchOpen] = useState(false)
 
   return (
@@ -41,12 +49,29 @@ export function SiteHeader() {
                 </Link>
               ))}
               <div className="mt-4 border-t border-border pt-4">
-                <Link href="/auth/login" className="block py-2 text-sm text-muted-foreground">
-                  Войти
-                </Link>
-                <Link href="/auth/register" className="block py-2 text-sm text-muted-foreground">
-                  Регистрация
-                </Link>
+                {user ? (
+                  <>
+                    <Link href="/account" className="block py-2 text-sm font-medium text-foreground">
+                      {user.name}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => logout()}
+                      className="block py-2 text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Выйти
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link href="/auth/login" className="block py-2 text-sm text-muted-foreground">
+                      Войти
+                    </Link>
+                    <Link href="/auth/register" className="block py-2 text-sm text-muted-foreground">
+                      Регистрация
+                    </Link>
+                  </>
+                )}
               </div>
             </nav>
           </SheetContent>
@@ -83,12 +108,42 @@ export function SiteHeader() {
             <Search className="h-5 w-5" />
             <span className="sr-only">Поиск</span>
           </Button>
-          <Link href="/account">
-            <Button variant="ghost" size="icon" className="hidden text-foreground sm:flex">
-              <User className="h-5 w-5" />
-              <span className="sr-only">Аккаунт</span>
-            </Button>
-          </Link>
+          {user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="hidden text-foreground sm:flex">
+                  <User className="h-5 w-5" />
+                  <span className="sr-only">Аккаунт</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5 text-sm font-medium text-foreground">
+                  {user.name}
+                </div>
+                <div className="px-2 text-xs text-muted-foreground">{user.email}</div>
+                <DropdownMenuItem asChild>
+                  <Link href="/account" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Личный кабинет
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer text-destructive focus:text-destructive"
+                  onSelect={() => logout()}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Выйти
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/auth/login">
+              <Button variant="ghost" size="icon" className="hidden text-foreground sm:flex">
+                <User className="h-5 w-5" />
+                <span className="sr-only">Войти</span>
+              </Button>
+            </Link>
+          )}
           <Link href="/account?tab=favorites">
             <Button variant="ghost" size="icon" className="text-foreground">
               <Heart className="h-5 w-5" />

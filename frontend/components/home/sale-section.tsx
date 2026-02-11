@@ -2,10 +2,14 @@
 
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { products } from "@/lib/mock-data"
+import type { Product } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
 
-export function SaleSection() {
+interface SaleSectionProps {
+  products: Product[]
+}
+
+export function SaleSection({ products }: SaleSectionProps) {
   const saleProducts = products.filter((p) => p.discount).slice(0, 4)
 
   return (

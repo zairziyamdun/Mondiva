@@ -1,7 +1,11 @@
 import Link from "next/link"
-import { categories } from "@/lib/mock-data"
+import type { Category } from "@/lib/types"
 
-export function CategoriesSection() {
+interface CategoriesSectionProps {
+  categories: Category[]
+}
+
+export function CategoriesSection({ categories }: CategoriesSectionProps) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 lg:py-24">
       <div className="mb-10 text-center">

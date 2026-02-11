@@ -3,7 +3,9 @@
 import { useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { Heart, Package, RotateCcw, Settings, User } from "lucide-react"
-import { users, orders, returnRequests, products, formatPrice } from "@/lib/mock-data"
+import { orders, returnRequests, products } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
+import { useAuth } from "@/lib/auth-context"
 import { useFavorites } from "@/lib/favorites-store"
 import { ProductCard } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
@@ -11,10 +13,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-
-const mockUser = users[0]
-const mockOrders = orders.filter((o) => o.userId === mockUser.id)
-const mockReturns = returnRequests.filter((r) => r.userId === mockUser.id)
 
 const tabs = [
   { id: "profile", label: "Профиль", icon: Settings },
@@ -40,8 +38,11 @@ export function AccountContent() {
   const searchParams = useSearchParams()
   const initialTab = searchParams.get("tab") || "profile"
   const [activeTab, setActiveTab] = useState(initialTab)
+  const { user } = useAuth()
   const { ids: favoriteIds } = useFavorites()
   const favoriteProducts = products.filter((p) => favoriteIds.includes(p.id))
+  const userOrders = user ? orders.filter((o) => o.userId === user.id) : []
+  const userReturns = user ? returnRequests.filter((r) => r.userId === user.id) : []
 
   return (
     <div>
@@ -50,8 +51,8 @@ export function AccountContent() {
           <User className="h-6 w-6 text-muted-foreground" />
         </div>
         <div>
-          <h1 className="font-serif text-2xl font-bold text-foreground">{mockUser.name}</h1>
-          <p className="text-sm text-muted-foreground">{mockUser.email}</p>
+          <h1 className="font-serif text-2xl font-bold text-foreground">{user?.name ?? ""}</h1>
+          <p className="text-sm text-muted-foreground">{user?.email ?? ""}</p>
         </div>
       </div>
 
@@ -82,16 +83,16 @@ export function AccountContent() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label className="text-xs text-muted-foreground">Имя</Label>
-              <Input defaultValue={mockUser.name} className="mt-1" />
+              <Input defaultValue={user?.name ?? ""} className="mt-1" />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Email</Label>
-              <Input defaultValue={mockUser.email} className="mt-1" />
+              <Input defaultValue={user?.email ?? ""} className="mt-1" />
             </div>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Телефон</Label>
-            <Input defaultValue={mockUser.phone || ""} className="mt-1" />
+            <Input defaultValue={user?.phone ?? ""} className="mt-1" />
           </div>
           <Button className="rounded-full">Сохранить</Button>
         </div>
@@ -100,10 +101,10 @@ export function AccountContent() {
       {/* Orders tab */}
       {activeTab === "orders" && (
         <div className="space-y-4">
-          {mockOrders.length === 0 ? (
+          {userOrders.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">У вас пока нет заказов</p>
           ) : (
-            mockOrders.map((order) => (
+            userOrders.map((order) => (
               <div key={order.id} className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -139,10 +140,10 @@ export function AccountContent() {
       {/* Returns tab */}
       {activeTab === "returns" && (
         <div className="space-y-4">
-          {mockReturns.length === 0 ? (
+          {userReturns.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">Нет запросов на возврат</p>
           ) : (
-            mockReturns.map((ret) => (
+            userReturns.map((ret) => (
               <div key={ret.id} className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>

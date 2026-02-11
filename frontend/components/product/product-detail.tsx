@@ -1,9 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Heart, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react"
-import type { Product } from "@/lib/types"
-import { formatPrice, reviews as allReviews } from "@/lib/mock-data"
+import type { Product, Review } from "@/lib/types"
+import { formatPrice } from "@/lib/utils"
+import { normalizeReview } from "@/lib/types"
+import type { ApiReview } from "@/lib/types"
+import { api } from "@/lib/api"
 import { useCart } from "@/lib/cart-store"
 import { useFavorites } from "@/lib/favorites-store"
 import { Button } from "@/components/ui/button"
@@ -18,11 +21,21 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedColor, setSelectedColor] = useState(product.colors[0] || "")
   const [quantity, setQuantity] = useState(1)
+  const [reviews, setReviews] = useState<Review[]>([])
   const { addToCart } = useCart()
   const { isFavorite, toggleFavorite } = useFavorites()
   const liked = isFavorite(product.id)
 
-  const productReviews = allReviews.filter((r) => r.productId === product.id && r.isApproved)
+  useEffect(() => {
+    api.get<ApiReview[]>(`/api/reviews/product/${product.id}`).then((res) => {
+      if (res.ok && Array.isArray(res.data)) {
+        const list = res.data.map((r) => normalizeReview(r)).filter(Boolean) as Review[]
+        setReviews(list.filter((r) => r.isApproved))
+      }
+    })
+  }, [product.id])
+
+  const productReviews = reviews
 
   const handleAddToCart = () => {
     if (!selectedSize) return

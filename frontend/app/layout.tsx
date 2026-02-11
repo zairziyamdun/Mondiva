@@ -2,6 +2,7 @@ import React from "react"
 import type { Metadata, Viewport } from "next"
 import { Cormorant_Garamond, Inter } from "next/font/google"
 
+import { AuthProvider } from "@/lib/auth-context"
 import "./globals.css"
 
 const _inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" })
@@ -30,7 +31,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ru">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   )
 }

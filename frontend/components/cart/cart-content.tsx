@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react"
 import { useCart } from "@/lib/cart-store"
-import { formatPrice } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 export function CartContent() {

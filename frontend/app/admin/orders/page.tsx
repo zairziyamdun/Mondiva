@@ -1,7 +1,8 @@
 "use client"
 
 import { AdminShell } from "@/components/admin/admin-shell"
-import { orders, users, formatPrice } from "@/lib/mock-data"
+import { orders, users } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 

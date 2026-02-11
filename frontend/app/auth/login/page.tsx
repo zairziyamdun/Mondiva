@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useState } from "react"
 import { Eye, EyeOff } from "lucide-react"
 import { SiteHeader } from "@/components/site-header"
@@ -8,11 +9,30 @@ import { SiteFooter } from "@/components/site-footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/lib/auth-context"
 
 export default function LoginPage() {
+  const searchParams = useSearchParams()
+  const returnUrl = searchParams.get("returnUrl") ?? "/account"
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    const result = await login(email, password)
+    setLoading(false)
+    if (result.ok) {
+      window.location.href = returnUrl
+    } else {
+      setError(result.error ?? "Ошибка входа")
+    }
+  }
 
   return (
     <>
@@ -26,16 +46,16 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form
-            className="mt-8 space-y-4"
-            onSubmit={(e) => {
-              e.preventDefault()
-              // Mock: redirect to account
-              window.location.href = "/account"
-            }}
-          >
+          <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            )}
             <div>
-              <Label htmlFor="email" className="text-xs text-muted-foreground">Email</Label>
+              <Label htmlFor="email" className="text-xs text-muted-foreground">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -47,7 +67,9 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <Label htmlFor="password" className="text-xs text-muted-foreground">Пароль</Label>
+              <Label htmlFor="password" className="text-xs text-muted-foreground">
+                Пароль
+              </Label>
               <div className="relative mt-1">
                 <Input
                   id="password"
@@ -77,8 +99,13 @@ export default function LoginPage() {
               </a>
             </div>
 
-            <Button type="submit" className="w-full rounded-full" size="lg">
-              Войти
+            <Button
+              type="submit"
+              className="w-full rounded-full"
+              size="lg"
+              disabled={loading}
+            >
+              {loading ? "Вход..." : "Войти"}
             </Button>
           </form>
 

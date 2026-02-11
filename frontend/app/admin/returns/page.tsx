@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { AdminShell } from "@/components/admin/admin-shell"
-import { returnRequests, orders, users, formatPrice } from "@/lib/mock-data"
+import { returnRequests, orders, users } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
 import type { ReturnStatus } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
 import {

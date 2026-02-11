@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { Heart } from "lucide-react"
 import type { Product } from "@/lib/types"
-import { formatPrice } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
 import { useFavorites } from "@/lib/favorites-store"
 import { cn } from "@/lib/utils"
 
@@ -18,7 +18,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="group relative">
       {/* Image */}
-      <Link href={`/product/${product.id}`} className="block">
+      <Link href={`/product/${product.slug || product.id}`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-secondary">
           <img
             src={product.images[0] || "/placeholder.svg"}
@@ -56,7 +56,7 @@ export function ProductCard({ product }: ProductCardProps) {
       {/* Info */}
       <div className="mt-3 space-y-1">
         <p className="text-xs text-muted-foreground">{product.brand}</p>
-        <Link href={`/product/${product.id}`}>
+        <Link href={`/product/${product.slug || product.id}`}>
           <h3 className="text-sm font-medium leading-snug text-foreground transition-colors group-hover:text-accent">
             {product.name}
           </h3>

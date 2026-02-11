@@ -3,7 +3,7 @@
 import { DollarSign, Package, ShoppingCart, TrendingUp, Users } from "lucide-react"
 import { AdminShell } from "@/components/admin/admin-shell"
 import { products, orders, users, reviews } from "@/lib/mock-data"
-import { formatPrice } from "@/lib/mock-data"
+import { formatPrice } from "@/lib/utils"
 
 const stats = [
   { label: "Выручка", value: formatPrice(orders.reduce((s, o) => s + o.total, 0)), icon: DollarSign, change: "+12%" },
