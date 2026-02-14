@@ -4,7 +4,7 @@ import React from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BarChart3, Box, Home, Layers, LayoutDashboard, Package, Settings, ShoppingCart, Star, Users } from "lucide-react"
+import { BarChart3, Box, Home, Layers, LayoutDashboard, Package, Star, ShoppingCart, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface AdminShellProps {

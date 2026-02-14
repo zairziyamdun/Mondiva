@@ -1,14 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
-import { Heart, Package, RotateCcw, Settings, User } from "lucide-react"
-import { orders, returnRequests, products } from "@/lib/mock-data"
-import { formatPrice } from "@/lib/utils"
+import { Heart, Loader2, Package, RotateCcw, Settings, User } from "lucide-react"
+import { formatPrice, formatDate } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
 import { useFavorites } from "@/lib/favorites-store"
+import { api } from "@/lib/api"
+import type { Order, ReturnRequest, Product } from "@/lib/types"
+import { normalizeOrder, normalizeReturnRequest, normalizeProduct } from "@/lib/types"
+import type { ApiOrder, ApiReturnRequest, ApiProduct } from "@/lib/types"
 import { ProductCard } from "@/components/product-card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -36,13 +38,82 @@ const statusLabels: Record<string, { label: string; variant: "default" | "second
 
 export function AccountContent() {
   const searchParams = useSearchParams()
-  const initialTab = searchParams.get("tab") || "profile"
-  const [activeTab, setActiveTab] = useState(initialTab)
+  const tabFromUrl = searchParams.get("tab") || "profile"
+  const [activeTab, setActiveTab] = useState(tabFromUrl)
   const { user } = useAuth()
   const { ids: favoriteIds } = useFavorites()
-  const favoriteProducts = products.filter((p) => favoriteIds.includes(p.id))
-  const userOrders = user ? orders.filter((o) => o.userId === user.id) : []
-  const userReturns = user ? returnRequests.filter((r) => r.userId === user.id) : []
+
+  const [orders, setOrders] = useState<Order[]>([])
+  const [returns, setReturns] = useState<ReturnRequest[]>([])
+  const [favoriteProducts, setFavoriteProducts] = useState<Product[]>([])
+  const [ordersLoading, setOrdersLoading] = useState(true)
+  const [returnsLoading, setReturnsLoading] = useState(true)
+  const [favoritesLoading, setFavoritesLoading] = useState(false)
+  const [ordersError, setOrdersError] = useState<string | null>(null)
+  const [returnsError, setReturnsError] = useState<string | null>(null)
+
+  // Синхронизация вкладки с URL
+  useEffect(() => {
+    setActiveTab(tabFromUrl)
+  }, [tabFromUrl])
+
+  // Загрузка заказов: GET /api/orders/my
+  useEffect(() => {
+    if (!user) return
+    setOrdersLoading(true)
+    setOrdersError(null)
+    api
+      .get<ApiOrder[]>("/api/orders/my")
+      .then((res) => {
+        if (res.ok) {
+          setOrders((res.data ?? []).map((o) => normalizeOrder(o)).filter(Boolean) as Order[])
+        } else {
+          setOrdersError(res.error?.message ?? "Не удалось загрузить заказы")
+        }
+      })
+      .catch(() => setOrdersError("Не удалось загрузить заказы"))
+      .finally(() => setOrdersLoading(false))
+  }, [user])
+
+  // Загрузка возвратов: GET /api/returns/my
+  useEffect(() => {
+    if (!user) return
+    setReturnsLoading(true)
+    setReturnsError(null)
+    api
+      .get<ApiReturnRequest[]>("/api/returns/my")
+      .then((res) => {
+        if (res.ok) {
+          setReturns((res.data ?? []).map((r) => normalizeReturnRequest(r)).filter(Boolean) as ReturnRequest[])
+        } else {
+          setReturnsError(res.error?.message ?? "Не удалось загрузить возвраты")
+        }
+      })
+      .catch(() => setReturnsError("Не удалось загрузить возвраты"))
+      .finally(() => setReturnsLoading(false))
+  }, [user])
+
+  // Загрузка товаров для избранного: GET /api/products, фильтр по favoriteIds
+  useEffect(() => {
+    if (activeTab !== "favorites" || favoriteIds.length === 0) {
+      setFavoriteProducts([])
+      return
+    }
+    setFavoritesLoading(true)
+    api
+      .get<ApiProduct[]>("/api/products")
+      .then((res) => {
+        if (res.ok && res.data) {
+          const list = Array.isArray(res.data) ? res.data : []
+          const normalized = list.map((p) => normalizeProduct(p)).filter(Boolean) as Product[]
+          setFavoriteProducts(normalized.filter((p) => favoriteIds.includes(p.id)))
+        } else {
+          setFavoriteProducts([])
+        }
+      })
+      .catch(() => setFavoriteProducts([]))
+      .finally(() => setFavoritesLoading(false))
+  }, [activeTab, favoriteIds.length, favoriteIds.join(",")])
 
   return (
     <div>
@@ -76,54 +147,61 @@ export function AccountContent() {
         ))}
       </div>
 
-      {/* Profile tab */}
+      {/* Profile tab — данные из useAuth (GET /api/users/me при инициализации) */}
       {activeTab === "profile" && (
         <div className="max-w-lg space-y-4 rounded-2xl bg-card p-6 shadow-sm">
           <h2 className="font-serif text-lg font-bold text-foreground">Личные данные</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label className="text-xs text-muted-foreground">Имя</Label>
-              <Input defaultValue={user?.name ?? ""} className="mt-1" />
+              <Input defaultValue={user?.name ?? ""} className="mt-1" readOnly />
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Email</Label>
-              <Input defaultValue={user?.email ?? ""} className="mt-1" />
+              <Input defaultValue={user?.email ?? ""} className="mt-1" readOnly />
             </div>
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Телефон</Label>
-            <Input defaultValue={user?.phone ?? ""} className="mt-1" />
+            <Input defaultValue={user?.phone ?? ""} className="mt-1" placeholder="Не указан" readOnly />
           </div>
-          <Button className="rounded-full">Сохранить</Button>
+          <p className="text-xs text-muted-foreground">Изменение профиля будет доступно в следующей версии.</p>
         </div>
       )}
 
       {/* Orders tab */}
       {activeTab === "orders" && (
         <div className="space-y-4">
-          {userOrders.length === 0 ? (
+          {ordersLoading ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Загрузка заказов...</span>
+            </div>
+          ) : ordersError ? (
+            <p className="py-12 text-center text-sm text-destructive">{ordersError}</p>
+          ) : orders.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">У вас пока нет заказов</p>
           ) : (
-            userOrders.map((order) => (
+            orders.map((order) => (
               <div key={order.id} className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-foreground">{order.id}</p>
-                    <p className="text-xs text-muted-foreground">{order.createdAt}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(order.createdAt)}</p>
                   </div>
                   <Badge variant={statusLabels[order.status]?.variant || "secondary"}>
                     {statusLabels[order.status]?.label || order.status}
                   </Badge>
                 </div>
                 <div className="mt-4 space-y-2">
-                  {order.items.map((item) => (
-                    <div key={`${item.productId}-${item.size}`} className="flex items-center gap-3 text-sm">
+                  {order.items.map((item, idx) => (
+                    <div key={`${String(item.productId)}-${item.size}-${idx}`} className="flex items-center gap-3 text-sm">
                       <img src={item.image || "/placeholder.svg"} alt={item.name} className="h-12 w-9 rounded-lg object-cover" />
                       <div className="flex-1">
                         <p className="font-medium text-foreground">{item.name}</p>
                         <p className="text-xs text-muted-foreground">{item.size} / {item.color} x{item.quantity}</p>
                       </div>
-                      <span className="text-sm text-foreground">{formatPrice(item.price)}</span>
+                      <span className="text-sm text-foreground">{formatPrice(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
@@ -140,10 +218,17 @@ export function AccountContent() {
       {/* Returns tab */}
       {activeTab === "returns" && (
         <div className="space-y-4">
-          {userReturns.length === 0 ? (
+          {returnsLoading ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Загрузка возвратов...</span>
+            </div>
+          ) : returnsError ? (
+            <p className="py-12 text-center text-sm text-destructive">{returnsError}</p>
+          ) : returns.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">Нет запросов на возврат</p>
           ) : (
-            userReturns.map((ret) => (
+            returns.map((ret) => (
               <div key={ret.id} className="rounded-2xl bg-card p-4 shadow-sm sm:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
@@ -155,7 +240,7 @@ export function AccountContent() {
                   </Badge>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">Причина: {ret.reason}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{ret.createdAt}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatDate(ret.createdAt)}</p>
               </div>
             ))
           )}
@@ -165,7 +250,12 @@ export function AccountContent() {
       {/* Favorites tab */}
       {activeTab === "favorites" && (
         <div>
-          {favoriteProducts.length === 0 ? (
+          {favoritesLoading ? (
+            <div className="flex items-center justify-center gap-2 py-12 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Загрузка...</span>
+            </div>
+          ) : favoriteProducts.length === 0 ? (
             <p className="py-12 text-center text-sm text-muted-foreground">
               В избранном пока ничего нет. Нажмите на сердечко на карточке товара, чтобы добавить.
             </p>
