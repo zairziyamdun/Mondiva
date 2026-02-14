@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Heart, LogOut, Menu, Search, ShoppingBag, User, X } from "lucide-react"
 import { useCart } from "@/lib/cart-store"
 import { useAuth } from "@/lib/auth-context"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -21,10 +22,36 @@ const navigation = [
   { name: "Скидки", href: "/catalog?filter=sale" },
 ]
 
+
+
+
 export function SiteHeader() {
   const { count } = useCart()
   const { user, logout } = useAuth()
   const [searchOpen, setSearchOpen] = useState(false)
+  const router = useRouter()
+  const handleDashboardRedirect = () => {
+    if (!user?.role) {
+      router.push("/account")
+      return
+    }
+
+    switch (user.role) {
+      case "admin":
+        router.push("/admin")
+        break
+      case "moderator":
+        router.push("/moderator")
+        break
+      case "logistics":
+        router.push("/logistics")
+        break
+      default:
+        router.push("/account")
+    }
+  }
+
+
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -127,6 +154,16 @@ export function SiteHeader() {
                     Личный кабинет
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onSelect={handleDashboardRedirect}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  {user.role} Панель
+                </DropdownMenuItem>
+
+                <br />
+
                 <DropdownMenuItem
                   className="cursor-pointer text-destructive focus:text-destructive"
                   onSelect={() => logout()}
