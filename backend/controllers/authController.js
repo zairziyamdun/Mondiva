@@ -37,7 +37,7 @@ const buildUserResponse = (user) => {
 // POST /api/auth/register
 export const register = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone } = req.body
+    const { name, email, password, phone } = req.body
 
     const existingUser = await User.findOne({ email })
     if (existingUser) {
@@ -51,8 +51,7 @@ export const register = async (req, res, next) => {
       email,
       phone,
       password: hashedPassword,
-      // роль можно указать только если уже есть админ, в противном случае всегда user
-      role: role && role !== "admin" ? role : "user",
+      role: "user", // всегда user при публичной регистрации (role из body игнорируется)
     })
 
     const accessToken = signAccessToken(user._id)

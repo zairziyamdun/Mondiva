@@ -3,9 +3,11 @@ import dotenv from "dotenv"
 import cors from "cors"
 import cookieParser from "cookie-parser"
 import morgan from "morgan"
+import helmet from "helmet"
 
 import connectDB from "./config/db.js"
 import { corsOptions } from "./config/cors.js"
+import { authRateLimit, productRateLimit } from "./middleware/rateLimitMiddleware.js"
 
 import authRoutes from "./routes/authRoutes.js"
 import productRoutes from "./routes/productRoutes.js"
@@ -21,6 +23,9 @@ connectDB()
 
 const app = express()
 
+// Security headers
+app.use(helmet())
+
 // Логирование запросов
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"))
@@ -31,9 +36,9 @@ app.use(cors(corsOptions))
 app.use(express.json())
 app.use(cookieParser())
 
-// API роуты
-app.use("/api/auth", authRoutes)
-app.use("/api/products", productRoutes)
+// API роуты (rate limit до CORS может быть, но лучше после — rate limit по path)
+app.use("/api/auth", authRateLimit, authRoutes)
+app.use("/api/products", productRateLimit, productRoutes)
 app.use("/api/categories", categoryRoutes)
 app.use("/api/orders", orderRoutes)
 app.use("/api/users", userRoutes)

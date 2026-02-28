@@ -1,24 +1,75 @@
+import mongoose from "mongoose"
 import Order from "../models/Order.js"
+import Product from "../models/Product.js"
 
 // POST /api/orders
 export const createOrder = async (req, res, next) => {
+  const session = await mongoose.startSession()
+  session.startTransaction()
+
   try {
     const userId = req.user?._id || req.user?.id
     const { items, total, address, deliveryMethod, paymentMethod } = req.body
 
-    const order = await Order.create({
-      userId,
-      items,
-      total,
-      address,
-      deliveryMethod,
-      paymentMethod,
-      status: "pending",
-    })
+    const productIds = [...new Set(items.map((i) => String(i.productId)))]
 
+    const products = await Product.find({ _id: { $in: productIds } })
+      .session(session)
+      .lean()
+
+    const productById = new Map(products.map((p) => [String(p._id), p]))
+
+    const qtyByProduct = {}
+    for (const item of items) {
+      const id = String(item.productId)
+      qtyByProduct[id] = (qtyByProduct[id] || 0) + (item.quantity || 0)
+    }
+
+    for (const [productId, needQty] of Object.entries(qtyByProduct)) {
+      const product = productById.get(productId)
+      if (!product) {
+        await session.abortTransaction()
+        return res.status(400).json({ message: `Товар ${productId} не найден` })
+      }
+      const stock = product.stock ?? 0
+      if (stock < needQty) {
+        await session.abortTransaction()
+        return res.status(409).json({
+          message: `Недостаточно товара «${product.name}» (осталось: ${stock}, запрошено: ${needQty})`,
+        })
+      }
+    }
+
+    const [order] = await Order.create(
+      [
+        {
+          userId,
+          items,
+          total,
+          address,
+          deliveryMethod,
+          paymentMethod,
+          status: "pending",
+        },
+      ],
+      { session }
+    )
+
+    for (const [productId, needQty] of Object.entries(qtyByProduct)) {
+      await Product.updateOne(
+        { _id: productId },
+        { $inc: { stock: -needQty } },
+        { session }
+      )
+    }
+
+    await session.commitTransaction()
     res.status(201).json(order)
   } catch (error) {
+    await session.abortTransaction()
     next(error)
+  } finally {
+    session.endSession()
   }
 }
 

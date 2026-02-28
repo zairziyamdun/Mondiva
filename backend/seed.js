@@ -57,7 +57,8 @@ const importData = async () => {
       const category = categoryBySlug.get(p.categorySlug)
       return {
         ...p,
-        // category/categorySlug уже заданы строками и соответствуют схеме
+        stock: p.inStock === true ? 100 : 0,
+        discountPrice: p.oldPrice != null ? p.price : null,
         createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
       }
     })
