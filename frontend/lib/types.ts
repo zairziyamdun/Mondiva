@@ -1,4 +1,4 @@
-// ===== Product =====
+// ===== Product (синхронизировано с backend Mongoose schema) =====
 export interface Product {
   id: string
   name: string
@@ -7,6 +7,10 @@ export interface Product {
   price: number
   oldPrice?: number
   discount?: number
+  discountPrice?: number
+  discountStart?: string
+  discountEnd?: string
+  stock: number
   images: string[]
   category: string
   categorySlug: string
@@ -17,7 +21,6 @@ export interface Product {
   reviewCount: number
   isNew: boolean
   isPopular: boolean
-  inStock: boolean
   createdAt: string
 }
 
@@ -120,6 +123,10 @@ export interface ApiProduct {
   price: number
   oldPrice?: number
   discount?: number
+  discountPrice?: number
+  discountStart?: string
+  discountEnd?: string
+  stock?: number
   images?: string[]
   category?: string
   categorySlug?: string
@@ -130,7 +137,6 @@ export interface ApiProduct {
   reviewCount?: number
   isNew?: boolean
   isPopular?: boolean
-  inStock?: boolean
   createdAt?: string
 }
 
@@ -213,6 +219,10 @@ export function normalizeProduct(api: ApiProduct | null | undefined): Product | 
     price: api.price,
     oldPrice: api.oldPrice,
     discount: api.discount,
+    discountPrice: api.discountPrice,
+    discountStart: api.discountStart,
+    discountEnd: api.discountEnd,
+    stock: typeof api.stock === "number" ? api.stock : 0,
     images: api.images ?? [],
     category: api.category ?? "",
     categorySlug: api.categorySlug ?? "",
@@ -223,7 +233,6 @@ export function normalizeProduct(api: ApiProduct | null | undefined): Product | 
     reviewCount: api.reviewCount ?? 0,
     isNew: api.isNew ?? false,
     isPopular: api.isPopular ?? false,
-    inStock: api.inStock ?? true,
     createdAt: api.createdAt ?? new Date().toISOString(),
   }
 }

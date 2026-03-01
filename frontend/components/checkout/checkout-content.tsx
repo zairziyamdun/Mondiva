@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { Check, ChevronRight, MapPin, CreditCard, Truck, ShoppingBag } from "lucide-react"
+import { toast } from "sonner"
 import { useCart } from "@/lib/cart-store"
 import { formatPrice } from "@/lib/utils"
 import { api } from "@/lib/api"
@@ -324,7 +325,14 @@ export function CheckoutContent() {
                     clearCart()
                     setOrderPlaced(true)
                   } else {
-                    setSubmitError(res.error?.message ?? "Не удалось оформить заказ")
+                    const errMsg = res.error?.message ?? "Не удалось оформить заказ"
+                    setSubmitError(errMsg)
+                    if (res.error?.status === 409) {
+                      toast.error(errMsg, {
+                        description: "Проверьте наличие товаров в корзине и обновите страницу.",
+                        duration: 6000,
+                      })
+                    }
                   }
                 }}
               >

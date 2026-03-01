@@ -3,9 +3,9 @@
 import Link from "next/link"
 import { Heart } from "lucide-react"
 import type { Product } from "@/lib/types"
-import { formatPrice } from "@/lib/utils"
+import { formatPrice, cn } from "@/lib/utils"
+import { getCurrentPrice, hasActiveDiscount, getDiscountPercent } from "@/lib/utils/pricing"
 import { useFavorites } from "@/lib/favorites-store"
-import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
   product: Product
@@ -14,9 +14,11 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { isFavorite, toggleFavorite } = useFavorites()
   const liked = isFavorite(product.id)
+  const currentPrice = getCurrentPrice(product)
+  const discountPercent = getDiscountPercent(product)
 
   return (
-    <div className="group relative">
+    <div className="group relative rounded-2xl transition-shadow duration-300 hover:shadow-lg">
       {/* Image */}
       <Link href={`/product/${product.slug || product.id}`} className="block">
         <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-secondary">
@@ -32,9 +34,9 @@ export function ProductCard({ product }: ProductCardProps) {
                 New
               </span>
             )}
-            {product.discount && (
+            {discountPercent != null && discountPercent > 0 && (
               <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent-foreground">
-                {`-${product.discount}%`}
+                -{discountPercent}%
               </span>
             )}
           </div>
@@ -62,10 +64,10 @@ export function ProductCard({ product }: ProductCardProps) {
           </h3>
         </Link>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">{formatPrice(product.price)}</span>
-          {product.oldPrice && (
+          <span className="text-sm font-semibold text-foreground">{formatPrice(currentPrice)}</span>
+          {hasActiveDiscount(product) && product.price > currentPrice && (
             <span className="text-xs text-muted-foreground line-through">
-              {formatPrice(product.oldPrice)}
+              {formatPrice(product.price)}
             </span>
           )}
         </div>

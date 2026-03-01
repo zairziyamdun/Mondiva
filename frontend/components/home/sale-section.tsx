@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import type { Product } from "@/lib/types"
+import { hasActiveDiscount } from "@/lib/utils/pricing"
 import { ProductCard } from "@/components/product-card"
 
 interface SaleSectionProps {
@@ -10,7 +11,7 @@ interface SaleSectionProps {
 }
 
 export function SaleSection({ products }: SaleSectionProps) {
-  const saleProducts = products.filter((p) => p.discount).slice(0, 4)
+  const saleProducts = products.filter((p) => hasActiveDiscount(p)).slice(0, 4)
 
   return (
     <section className="bg-secondary/50 px-4 py-16 lg:py-24">

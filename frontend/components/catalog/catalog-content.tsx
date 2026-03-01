@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { SlidersHorizontal, X } from "lucide-react"
 import type { Category, Product } from "@/lib/types"
 import { normalizeCategory, normalizeProduct } from "@/lib/types"
+import { getCurrentPrice, hasActiveDiscount } from "@/lib/utils/pricing"
 import type { ApiCategory, ApiProduct } from "@/lib/types"
 import { api } from "@/lib/api"
 import { ProductCard } from "@/components/product-card"
@@ -83,7 +84,7 @@ export function CatalogContent() {
     if (selectedSizes.length > 0) {
       result = result.filter((p) => p.sizes.some((s) => selectedSizes.includes(s)))
     }
-    if (showOnlySale) result = result.filter((p) => p.discount)
+    if (showOnlySale) result = result.filter((p) => hasActiveDiscount(p))
     if (showOnlyNew) result = result.filter((p) => p.isNew)
 
     switch (sortBy) {
@@ -91,10 +92,10 @@ export function CatalogContent() {
         result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         break
       case "price-asc":
-        result.sort((a, b) => a.price - b.price)
+        result.sort((a, b) => getCurrentPrice(a) - getCurrentPrice(b))
         break
       case "price-desc":
-        result.sort((a, b) => b.price - a.price)
+        result.sort((a, b) => getCurrentPrice(b) - getCurrentPrice(a))
         break
       case "popular":
         result.sort((a, b) => b.reviewCount - a.reviewCount)

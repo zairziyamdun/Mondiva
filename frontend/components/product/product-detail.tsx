@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react"
 import { Heart, Minus, Plus, ShoppingBag, Star, Truck } from "lucide-react"
 import type { Product, Review } from "@/lib/types"
-import { formatPrice } from "@/lib/utils"
+import { formatPrice, cn } from "@/lib/utils"
+import { getCurrentPrice, hasActiveDiscount, getDiscountPercent } from "@/lib/utils/pricing"
 import { normalizeReview } from "@/lib/types"
 import type { ApiReview } from "@/lib/types"
 import { api } from "@/lib/api"
 import { useCart } from "@/lib/cart-store"
 import { useFavorites } from "@/lib/favorites-store"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 
 interface ProductDetailProps {
   product: Product
@@ -25,6 +25,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const { addToCart } = useCart()
   const { isFavorite, toggleFavorite } = useFavorites()
   const liked = isFavorite(product.id)
+  const currentPrice = getCurrentPrice(product)
+  const discountPercent = getDiscountPercent(product)
+  const outOfStock = product.stock <= 0
+  const lowStock = product.stock > 0 && product.stock < 5
 
   useEffect(() => {
     api.get<ApiReview[]>(`/api/reviews/product/${product.id}`).then((res) => {
@@ -46,7 +50,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
       size: selectedSize,
       color: selectedColor,
       quantity,
-      price: product.price,
+      price: currentPrice,
     })
   }
 
@@ -60,9 +64,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
             alt={product.name}
             className="h-full w-full object-cover"
           />
-          {product.discount && (
+          {discountPercent != null && discountPercent > 0 && (
             <span className="absolute left-4 top-4 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-              {`-${product.discount}%`}
+              -{discountPercent}%
             </span>
           )}
         </div>
@@ -110,9 +114,9 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
         {/* Price */}
         <div className="mt-4 flex items-baseline gap-3">
-          <span className="text-2xl font-bold text-foreground">{formatPrice(product.price)}</span>
-          {product.oldPrice && (
-            <span className="text-lg text-muted-foreground line-through">{formatPrice(product.oldPrice)}</span>
+          <span className="text-2xl font-bold text-foreground">{formatPrice(currentPrice)}</span>
+          {hasActiveDiscount(product) && product.price > currentPrice && (
+            <span className="text-lg text-muted-foreground line-through">{formatPrice(product.price)}</span>
           )}
         </div>
 
@@ -177,6 +181,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
               size="icon"
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
               className="h-10 w-10"
+              disabled={quantity <= 1}
             >
               <Minus className="h-4 w-4" />
             </Button>
@@ -184,12 +189,16 @@ export function ProductDetail({ product }: ProductDetailProps) {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setQuantity(quantity + 1)}
+              onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
               className="h-10 w-10"
+              disabled={quantity >= product.stock}
             >
               <Plus className="h-4 w-4" />
             </Button>
           </div>
+          {lowStock && (
+            <p className="mt-1.5 text-xs text-amber-600">Осталось мало ({product.stock} шт.)</p>
+          )}
         </div>
 
         {/* Actions */}
@@ -197,11 +206,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
           <Button
             size="lg"
             className="flex-1 rounded-full"
-            disabled={!selectedSize}
+            disabled={!selectedSize || outOfStock}
             onClick={handleAddToCart}
           >
             <ShoppingBag className="mr-2 h-4 w-4" />
-            Добавить в корзину
+            {outOfStock ? "Нет в наличии" : "Добавить в корзину"}
           </Button>
           <Button
             variant="outline"
