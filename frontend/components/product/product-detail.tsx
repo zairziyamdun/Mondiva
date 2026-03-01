@@ -115,8 +115,8 @@ export function ProductDetail({ product }: ProductDetailProps) {
         {/* Price */}
         <div className="mt-4 flex items-baseline gap-3">
           <span className="text-2xl font-bold text-foreground">{formatPrice(currentPrice)}</span>
-          {hasActiveDiscount(product) && product.price > currentPrice && (
-            <span className="text-lg text-muted-foreground line-through">{formatPrice(product.price)}</span>
+          {product.oldPrice != null && (
+            <span className="text-lg text-muted-foreground line-through">{formatPrice(product.oldPrice)}</span>
           )}
         </div>
 

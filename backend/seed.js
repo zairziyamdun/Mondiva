@@ -11,6 +11,7 @@ import Category from "./models/Category.js"
 import Order from "./models/Order.js"
 import Review from "./models/Review.js"
 import ReturnRequest from "./models/ReturnRequest.js"
+import Discount from "./models/Discount.js"
 
 import { users, products, categories, orders, reviews, returnRequests } from "./data.js"
 
@@ -28,6 +29,7 @@ const importData = async () => {
       Order.deleteMany(),
       Review.deleteMany(),
       ReturnRequest.deleteMany(),
+      Discount.deleteMany(),
     ])
 
     // ===== Users (hash passwords) =====
@@ -53,18 +55,48 @@ const importData = async () => {
     const categoryBySlug = new Map(createdCategories.map((c) => [c.slug, c]))
 
     // ===== Products =====
-    const enrichedProducts = products.map((p) => {
-      const category = categoryBySlug.get(p.categorySlug)
-      return {
-        ...p,
-        stock: p.inStock === true ? 100 : 0,
-        discountPrice: p.oldPrice != null ? p.price : null,
-        createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
-      }
-    })
+    const enrichedProducts = products.map((p) => ({
+      name: p.name,
+      slug: p.slug,
+      description: p.description,
+      price: p.price,
+      images: p.images,
+      category: p.category,
+      categorySlug: p.categorySlug,
+      brand: p.brand,
+      colors: p.colors,
+      sizes: p.sizes,
+      rating: p.rating,
+      reviewCount: p.reviewCount,
+      isNew: p.isNew,
+      isPopular: p.isPopular,
+      stock: p.inStock === true ? 100 : 0,
+      createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+    }))
 
     const createdProducts = await Product.insertMany(enrichedProducts)
     const productBySlug = new Map(createdProducts.map((p) => [p.slug, p]))
+
+    // ===== Discounts (для товаров со скидкой из data) =====
+    const discountsData = [
+      { slug: "silk-dress-aurelia", type: "percentage", value: 32 },
+      { slug: "trench-classic-beige", type: "percentage", value: 24 },
+    ]
+    const startDate = new Date("2025-01-01")
+    const endDate = new Date("2026-12-31")
+    for (const d of discountsData) {
+      const product = productBySlug.get(d.slug)
+      if (product) {
+        await Discount.create({
+          productId: product._id,
+          type: d.type,
+          value: d.value,
+          startDate,
+          endDate,
+          isActive: true,
+        })
+      }
+    }
 
     // ===== Orders =====
     const createdOrdersWithCode = []

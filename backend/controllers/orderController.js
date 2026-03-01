@@ -2,74 +2,102 @@ import mongoose from "mongoose"
 import Order from "../models/Order.js"
 import Product from "../models/Product.js"
 
+async function runCreateOrder(req, sessionOrNull) {
+  const opts = sessionOrNull ? { session: sessionOrNull } : {}
+  const userId = req.user?._id || req.user?.id
+  const { items, total, address, deliveryMethod, paymentMethod } = req.body
+
+  const productIds = [...new Set(items.map((i) => String(i.productId)))]
+
+  const query = Product.find({ _id: { $in: productIds } })
+  if (sessionOrNull) query.session(sessionOrNull)
+  const products = await query.lean()
+
+  const productById = new Map(products.map((p) => [String(p._id), p]))
+
+  const qtyByProduct = {}
+  for (const item of items) {
+    const id = String(item.productId)
+    qtyByProduct[id] = (qtyByProduct[id] || 0) + (item.quantity || 0)
+  }
+
+  for (const [productId, needQty] of Object.entries(qtyByProduct)) {
+    const product = productById.get(productId)
+    if (!product) {
+      return { status: 400, body: { message: `Товар ${productId} не найден` } }
+    }
+    const stock = product.stock ?? 0
+    if (stock < needQty) {
+      return {
+        status: 409,
+        body: {
+          message: `Недостаточно товара «${product.name}» (осталось: ${stock}, запрошено: ${needQty})`,
+        },
+      }
+    }
+  }
+
+  const [order] = await Order.create(
+    [
+      {
+        userId,
+        items,
+        total,
+        address,
+        deliveryMethod,
+        paymentMethod,
+        status: "pending",
+      },
+    ],
+    opts
+  )
+
+  for (const [productId, needQty] of Object.entries(qtyByProduct)) {
+    await Product.updateOne(
+      { _id: productId },
+      { $inc: { stock: -needQty } },
+      opts
+    )
+  }
+
+  return { order }
+}
+
 // POST /api/orders
 export const createOrder = async (req, res, next) => {
-  const session = await mongoose.startSession()
-  session.startTransaction()
-
   try {
-    const userId = req.user?._id || req.user?.id
-    const { items, total, address, deliveryMethod, paymentMethod } = req.body
-
-    const productIds = [...new Set(items.map((i) => String(i.productId)))]
-
-    const products = await Product.find({ _id: { $in: productIds } })
-      .session(session)
-      .lean()
-
-    const productById = new Map(products.map((p) => [String(p._id), p]))
-
-    const qtyByProduct = {}
-    for (const item of items) {
-      const id = String(item.productId)
-      qtyByProduct[id] = (qtyByProduct[id] || 0) + (item.quantity || 0)
-    }
-
-    for (const [productId, needQty] of Object.entries(qtyByProduct)) {
-      const product = productById.get(productId)
-      if (!product) {
-        await session.abortTransaction()
-        return res.status(400).json({ message: `Товар ${productId} не найден` })
+    // Сначала пробуем с транзакцией (replica set / atlas)
+    const session = await mongoose.startSession()
+    let order
+    try {
+      await session.withTransaction(async () => {
+        const result = await runCreateOrder(req, session)
+        if (result.status) {
+          throw Object.assign(new Error(), { status: result.status, body: result.body })
+        }
+        order = result.order
+      })
+    } catch (txErr) {
+      if (txErr.status) {
+        return res.status(txErr.status).json(txErr.body || { message: txErr.message })
       }
-      const stock = product.stock ?? 0
-      if (stock < needQty) {
-        await session.abortTransaction()
-        return res.status(409).json({
-          message: `Недостаточно товара «${product.name}» (осталось: ${stock}, запрошено: ${needQty})`,
-        })
+      // "Transaction numbers are only allowed on a replica set member or mongos"
+      const msg = String(txErr?.message || "")
+      if (msg.includes("replica set") || msg.includes("mongos")) {
+        session.endSession()
+        const result = await runCreateOrder(req, null)
+        if (result.status) {
+          return res.status(result.status).json(result.body)
+        }
+        return res.status(201).json(result.order)
       }
+      throw txErr
+    } finally {
+      session.endSession()
     }
-
-    const [order] = await Order.create(
-      [
-        {
-          userId,
-          items,
-          total,
-          address,
-          deliveryMethod,
-          paymentMethod,
-          status: "pending",
-        },
-      ],
-      { session }
-    )
-
-    for (const [productId, needQty] of Object.entries(qtyByProduct)) {
-      await Product.updateOne(
-        { _id: productId },
-        { $inc: { stock: -needQty } },
-        { session }
-      )
-    }
-
-    await session.commitTransaction()
     res.status(201).json(order)
   } catch (error) {
-    await session.abortTransaction()
     next(error)
-  } finally {
-    session.endSession()
   }
 }
 

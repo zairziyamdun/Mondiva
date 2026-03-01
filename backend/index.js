@@ -16,6 +16,7 @@ import orderRoutes from "./routes/orderRoutes.js"
 import userRoutes from "./routes/userRoutes.js"
 import reviewRoutes from "./routes/reviewRoutes.js"
 import returnRoutes from "./routes/returnRoutes.js"
+import discountRoutes from "./routes/discountRoutes.js"
 import { notFound, errorHandler } from "./middleware/errorMiddleware.js"
 
 dotenv.config()
@@ -44,6 +45,7 @@ app.use("/api/orders", orderRoutes)
 app.use("/api/users", userRoutes)
 app.use("/api/reviews", reviewRoutes)
 app.use("/api/returns", returnRoutes)
+app.use("/api/discounts", discountRoutes)
 
 // 404 и глобальный обработчик ошибок
 app.use(notFound)

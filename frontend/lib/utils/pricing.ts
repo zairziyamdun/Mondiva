@@ -1,46 +1,23 @@
 import type { Product } from "@/lib/types"
 
 /**
- * Текущая цена: discountPrice если активна временная скидка, иначе price.
- * Логика синхронизирована с backend (Product virtual currentPrice).
+ * Текущая цена для отображения и расчётов.
+ * API возвращает finalPrice (вычисленную на бэкенде из Discount).
  */
-export function getCurrentPrice(product: Pick<Product, "price" | "discountPrice" | "discountStart" | "discountEnd">): number {
-  const now = new Date()
-  if (
-    product.discountPrice != null &&
-    product.discountStart &&
-    product.discountEnd &&
-    now >= new Date(product.discountStart) &&
-    now <= new Date(product.discountEnd)
-  ) {
-    return product.discountPrice
-  }
-  return product.price
+export function getCurrentPrice(product: Pick<Product, "price" | "finalPrice">): number {
+  return product.finalPrice ?? product.price
 }
 
 /**
- * Есть ли активная временная скидка.
- * Логика синхронизирована с backend (Product virtual hasActiveDiscount).
+ * Есть ли активная скидка (oldPrice возвращается только при скидке).
  */
-export function hasActiveDiscount(
-  product: Pick<Product, "discountPrice" | "discountStart" | "discountEnd">
-): boolean {
-  const now = new Date()
-  return !!(
-    product.discountPrice != null &&
-    product.discountStart &&
-    product.discountEnd &&
-    now >= new Date(product.discountStart) &&
-    now <= new Date(product.discountEnd)
-  )
+export function hasActiveDiscount(product: Pick<Product, "oldPrice">): boolean {
+  return product.oldPrice != null
 }
 
 /**
- * Процент скидки при активной скидке: (1 - discountPrice/price) * 100
+ * Процент скидки (возвращается с API при активной скидке).
  */
-export function getDiscountPercent(product: Product): number | null {
-  if (!hasActiveDiscount(product) || product.discountPrice == null || product.price <= 0) {
-    return null
-  }
-  return Math.round((1 - product.discountPrice / product.price) * 100)
+export function getDiscountPercent(product: Pick<Product, "discountPercent">): number | null {
+  return product.discountPercent != null ? product.discountPercent : null
 }

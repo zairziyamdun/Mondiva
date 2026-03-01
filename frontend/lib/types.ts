@@ -1,15 +1,13 @@
-// ===== Product (синхронизировано с backend Mongoose schema) =====
+// ===== Product (API возвращает finalPrice, oldPrice?, discountPercent? из Discount коллекции) =====
 export interface Product {
   id: string
   name: string
   slug: string
   description: string
   price: number
+  finalPrice: number
   oldPrice?: number
-  discount?: number
-  discountPrice?: number
-  discountStart?: string
-  discountEnd?: string
+  discountPercent?: number
   stock: number
   images: string[]
   category: string
@@ -121,11 +119,9 @@ export interface ApiProduct {
   slug: string
   description?: string
   price: number
+  finalPrice?: number
   oldPrice?: number
-  discount?: number
-  discountPrice?: number
-  discountStart?: string
-  discountEnd?: string
+  discountPercent?: number
   stock?: number
   images?: string[]
   category?: string
@@ -211,17 +207,17 @@ function toId(obj: { _id: string } | { id?: string; _id?: string }): string {
 export function normalizeProduct(api: ApiProduct | null | undefined): Product | null {
   if (!api) return null
   const id = toId(api)
+  const price = api.price ?? 0
+  const finalPrice = api.finalPrice ?? price
   return {
     id,
     name: api.name,
     slug: api.slug,
     description: api.description ?? "",
-    price: api.price,
+    price,
+    finalPrice,
     oldPrice: api.oldPrice,
-    discount: api.discount,
-    discountPrice: api.discountPrice,
-    discountStart: api.discountStart,
-    discountEnd: api.discountEnd,
+    discountPercent: api.discountPercent,
     stock: typeof api.stock === "number" ? api.stock : 0,
     images: api.images ?? [],
     category: api.category ?? "",

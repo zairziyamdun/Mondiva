@@ -1,10 +1,10 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Loader2 } from "lucide-react"
+import { Loader2, Percent } from "lucide-react"
 import type { Product } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
@@ -22,40 +22,22 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
+import { DiscountFormDialog } from "./discount-form-dialog"
 
-const productFormSchema = z
-  .object({
-    name: z.string().min(1, "Название обязательно"),
-    slug: z.string().min(1, "Slug обязателен"),
-    description: z.string().optional(),
-    category: z.string().optional(),
-    brand: z.string().optional(),
-    price: z.coerce.number().positive("Цена должна быть > 0"),
-    oldPrice: z.coerce.number().optional(),
-    discountPrice: z.coerce.number().optional(),
-    discountStart: z.string().optional(),
-    discountEnd: z.string().optional(),
-    stock: z.coerce.number().min(0, "Остаток не может быть отрицательным"),
-    colorsStr: z.string().optional(),
-    sizesStr: z.string().optional(),
-    imagesStr: z.string().optional(),
-    isNew: z.boolean().default(false),
-    isPopular: z.boolean().default(false),
-  })
-  .refine(
-    (data) => {
-      if (data.discountPrice == null || data.discountPrice === 0) return true
-      return data.discountPrice <= data.price
-    },
-    { message: "discountPrice не может быть больше price", path: ["discountPrice"] }
-  )
-  .refine(
-    (data) => {
-      if (!data.discountStart || !data.discountEnd) return true
-      return new Date(data.discountStart) < new Date(data.discountEnd)
-    },
-    { message: "discountStart должен быть раньше discountEnd", path: ["discountEnd"] }
-  )
+const productFormSchema = z.object({
+  name: z.string().min(1, "Название обязательно"),
+  slug: z.string().min(1, "Slug обязателен"),
+  description: z.string().optional(),
+  category: z.string().optional(),
+  brand: z.string().optional(),
+  price: z.coerce.number().positive("Цена должна быть > 0"),
+  stock: z.coerce.number().min(0, "Остаток не может быть отрицательным"),
+  colorsStr: z.string().optional(),
+  sizesStr: z.string().optional(),
+  imagesStr: z.string().optional(),
+  isNew: z.boolean().default(false),
+  isPopular: z.boolean().default(false),
+})
 
 type ProductFormValues = z.infer<typeof productFormSchema>
 
@@ -77,10 +59,6 @@ function valuesToBody(values: ProductFormValues) {
     categorySlug: values.category || undefined,
     brand: values.brand || undefined,
     price: values.price,
-    oldPrice: values.oldPrice || undefined,
-    discountPrice: values.discountPrice || undefined,
-    discountStart: values.discountStart ? new Date(values.discountStart).toISOString() : undefined,
-    discountEnd: values.discountEnd ? new Date(values.discountEnd).toISOString() : undefined,
     stock: values.stock,
     colors: colors.length ? colors : undefined,
     sizes: sizes.length ? sizes : undefined,
@@ -98,10 +76,6 @@ function productToValues(p: Product): ProductFormValues {
     category: p.category ?? p.categorySlug ?? "",
     brand: p.brand ?? "",
     price: p.price,
-    oldPrice: p.oldPrice ?? undefined,
-    discountPrice: p.discountPrice ?? undefined,
-    discountStart: p.discountStart ? p.discountStart.slice(0, 16) : "",
-    discountEnd: p.discountEnd ? p.discountEnd.slice(0, 16) : "",
     stock: p.stock,
     colorsStr: (p.colors ?? []).join(", "),
     sizesStr: (p.sizes ?? []).join(", "),
@@ -118,10 +92,6 @@ const defaultValues: ProductFormValues = {
   category: "",
   brand: "",
   price: 1,
-  oldPrice: undefined,
-  discountPrice: undefined,
-  discountStart: "",
-  discountEnd: "",
   stock: 0,
   colorsStr: "",
   sizesStr: "",
@@ -147,6 +117,8 @@ export function ProductFormDialog({
     resolver: zodResolver(productFormSchema),
     defaultValues,
   })
+
+  const [discountDialogOpen, setDiscountDialogOpen] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -219,39 +191,33 @@ export function ProductFormDialog({
             </div>
           </div>
 
-          {/* 2) Цена */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Цена</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="price" className="text-xs text-muted-foreground">Цена (₽) *</Label>
-                <Input id="price" type="number" min={0} step={1} {...form.register("price")} className={cn("mt-1", form.formState.errors.price && "border-destructive")} />
-                {form.formState.errors.price && <p className="mt-0.5 text-xs text-destructive">{form.formState.errors.price.message}</p>}
-              </div>
-              <div>
-                <Label htmlFor="oldPrice" className="text-xs text-muted-foreground">oldPrice (зачёркнутая)</Label>
-                <Input id="oldPrice" type="number" min={0} step={1} {...form.register("oldPrice")} className="mt-1" />
-              </div>
+          {/* 2) Цена и скидка */}
+          <div className="flex gap-3 items-end">
+            <div className="flex-1">
+              <Label htmlFor="price" className="text-xs text-muted-foreground">Базовая цена (₽) *</Label>
+              <Input id="price" type="number" min={0} step={1} {...form.register("price")} className={cn("mt-1", form.formState.errors.price && "border-destructive")} />
+              {form.formState.errors.price && <p className="mt-0.5 text-xs text-destructive">{form.formState.errors.price.message}</p>}
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="discountPrice" className="text-xs text-muted-foreground">discountPrice</Label>
-                <Input id="discountPrice" type="number" min={0} step={1} {...form.register("discountPrice")} className={cn("mt-1", form.formState.errors.discountPrice && "border-destructive")} />
-                {form.formState.errors.discountPrice && <p className="mt-0.5 text-xs text-destructive">{form.formState.errors.discountPrice.message}</p>}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="discountStart" className="text-xs text-muted-foreground">discountStart</Label>
-                <Input id="discountStart" type="datetime-local" {...form.register("discountStart")} className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="discountEnd" className="text-xs text-muted-foreground">discountEnd</Label>
-                <Input id="discountEnd" type="datetime-local" {...form.register("discountEnd")} className={cn("mt-1", form.formState.errors.discountEnd && "border-destructive")} />
-                {form.formState.errors.discountEnd && <p className="mt-0.5 text-xs text-destructive">{form.formState.errors.discountEnd.message}</p>}
-              </div>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setDiscountDialogOpen(true)}
+            >
+              <Percent className="mr-1.5 h-4 w-4" />
+              Скидка
+            </Button>
           </div>
+
+          <DiscountFormDialog
+            open={discountDialogOpen}
+            onOpenChange={setDiscountDialogOpen}
+            productId={editingProduct?.id ?? null}
+            productName={form.watch("name") || "Товар"}
+            productPrice={form.watch("price") || 0}
+            onSuccess={editingProduct ? () => onSuccess(editingProduct, false) : undefined}
+          />
 
           {/* 3) Остатки */}
           <div>

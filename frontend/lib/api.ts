@@ -123,7 +123,7 @@ async function request<T>(
         : undefined
     return {
       ok: false,
-      error: { message, status: res.status, errors },
+      error: { message: String(message), status: res.status, errors },
     }
   }
 

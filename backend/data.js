@@ -84,9 +84,7 @@ export const products = [
     slug: "silk-dress-aurelia",
     description:
       "Элегантное шёлковое платье с V-образным вырезом и струящимся силуэтом. Идеально для вечерних мероприятий и особых случаев.",
-    price: 12900,
-    oldPrice: 18900,
-    discount: 32,
+    price: 18900,
     images: [
       "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=600&h=800&fit=crop",
       "https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=600&h=800&fit=crop",
@@ -128,9 +126,7 @@ export const products = [
     name: "Тренч Classic Beige",
     slug: "trench-classic-beige",
     description: "Классический тренч из водоотталкивающей ткани.",
-    price: 15900,
-    oldPrice: 21000,
-    discount: 24,
+    price: 21000,
     images: [
       "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=600&h=800&fit=crop",
       "https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=600&h=800&fit=crop",

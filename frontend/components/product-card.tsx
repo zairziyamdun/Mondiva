@@ -65,9 +65,9 @@ export function ProductCard({ product }: ProductCardProps) {
         </Link>
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-foreground">{formatPrice(currentPrice)}</span>
-          {hasActiveDiscount(product) && product.price > currentPrice && (
+          {product.oldPrice != null && (
             <span className="text-xs text-muted-foreground line-through">
-              {formatPrice(product.price)}
+              {formatPrice(product.oldPrice)}
             </span>
           )}
         </div>
