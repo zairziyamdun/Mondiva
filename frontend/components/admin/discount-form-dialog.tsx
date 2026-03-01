@@ -52,6 +52,28 @@ function formatDate(d: string) {
   })
 }
 
+type DiscountStatus = "upcoming" | "active" | "expired"
+
+function getDiscountStatus(d: { startDate: string; endDate: string }): DiscountStatus {
+  const now = Date.now()
+  const start = new Date(d.startDate).getTime()
+  const end = new Date(d.endDate).getTime()
+  if (now < start) return "upcoming"
+  if (now >= start && now <= end) return "active"
+  return "expired"
+}
+
+function getStatusBorderClass(status: DiscountStatus): string {
+  switch (status) {
+    case "upcoming":
+      return "border-green-500"
+    case "active":
+      return "border-orange-500"
+    case "expired":
+      return "border-red-500"
+  }
+}
+
 export function DiscountFormDialog({
   open,
   onOpenChange,
@@ -104,8 +126,14 @@ export function DiscountFormDialog({
       setError("Процент не может быть больше 100")
       return
     }
-    if (new Date(startDate) >= new Date(endDate)) {
-      setError("Дата начала должна быть раньше даты окончания")
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    if (start < new Date()) {
+      setError("Дата начала не может быть в прошедшем времени")
+      return
+    }
+    if (end <= start) {
+      setError("Дата окончания должна быть позже даты начала")
       return
     }
 
@@ -127,7 +155,7 @@ export function DiscountFormDialog({
       setEndDate("")
       onSuccess?.()
     } else {
-      setError(res.error?.message ?? "Ошибка сохранения")
+      setError(!res.ok && "error" in res ? res.error.message : "Ошибка сохранения")
     }
   }
 
@@ -173,10 +201,12 @@ export function DiscountFormDialog({
               <div className="space-y-2">
                 <Label className="text-xs">Текущие скидки</Label>
                 <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                  {discounts.map((d) => (
+                  {discounts.map((d) => {
+                    const status = getDiscountStatus(d)
+                    return (
                     <div
                       key={d._id}
-                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
+                      className={`flex items-center justify-between rounded-lg border-2 px-3 py-2 text-sm ${getStatusBorderClass(status)}`}
                     >
                       <div>
                         <span className="font-medium">
@@ -190,6 +220,18 @@ export function DiscountFormDialog({
                             Неактивна
                           </Badge>
                         )}
+                        <Badge
+                          variant="outline"
+                          className={`ml-2 ${
+                            status === "upcoming"
+                              ? "border-green-500 text-green-600"
+                              : status === "active"
+                                ? "border-orange-500 text-orange-600"
+                                : "border-red-500 text-red-600"
+                          }`}
+                        >
+                          {status === "upcoming" ? "Скоро" : status === "active" ? "Активна" : "Истекла"}
+                        </Badge>
                       </div>
                       <Button
                         variant="ghost"
@@ -200,7 +242,7 @@ export function DiscountFormDialog({
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
-                  ))}
+                  )})}
                 </div>
               </div>
             ) : null}

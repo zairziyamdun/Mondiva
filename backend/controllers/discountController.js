@@ -1,5 +1,6 @@
 import Discount from "../models/Discount.js"
 import Product from "../models/Product.js"
+import { hasOverlappingDiscount } from "../services/discountService.js"
 
 // GET /api/discounts
 export const getDiscounts = async (req, res, next) => {
@@ -32,12 +33,29 @@ export const createDiscount = async (req, res, next) => {
     if (!product) {
       return res.status(404).json({ message: "Товар не найден" })
     }
+
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const now = new Date()
+
+    if (start < now) {
+      return res.status(400).json({ message: "Дата начала не может быть в прошедшем времени" })
+    }
+    if (end <= start) {
+      return res.status(400).json({ message: "Дата окончания должна быть позже даты начала" })
+    }
+
+    const overlapping = await hasOverlappingDiscount(productId, start, end)
+    if (overlapping) {
+      return res.status(400).json({ message: "Скидка пересекается с уже существующей" })
+    }
+
     const discount = await Discount.create({
       productId,
       type,
       value,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: start,
+      endDate: end,
       isActive: true,
     })
     res.status(201).json(discount)
@@ -51,21 +69,45 @@ export const updateDiscount = async (req, res, next) => {
   try {
     const { id } = req.params
     const { type, value, startDate, endDate, isActive } = req.body
-    const update = {}
-    if (type != null) update.type = type
-    if (value != null) update.value = value
-    if (startDate != null) update.startDate = new Date(startDate)
-    if (endDate != null) update.endDate = new Date(endDate)
-    if (isActive != null) update.isActive = isActive
 
-    const discount = await Discount.findByIdAndUpdate(id, update, {
-      new: true,
-      runValidators: true,
-    })
+    const discount = await Discount.findById(id)
     if (!discount) {
       return res.status(404).json({ message: "Скидка не найдена" })
     }
-    res.json(discount)
+
+    const start = startDate != null ? new Date(startDate) : discount.startDate
+    const end = endDate != null ? new Date(endDate) : discount.endDate
+    const now = new Date()
+
+    if (start < now) {
+      return res.status(400).json({ message: "Дата начала не может быть в прошедшем времени" })
+    }
+    if (end <= start) {
+      return res.status(400).json({ message: "Дата окончания должна быть позже даты начала" })
+    }
+
+    const overlapping = await hasOverlappingDiscount(
+      discount.productId,
+      start,
+      end,
+      id
+    )
+    if (overlapping) {
+      return res.status(400).json({ message: "Скидка пересекается с уже существующей" })
+    }
+
+    const update = {}
+    if (type != null) update.type = type
+    if (value != null) update.value = value
+    if (startDate != null) update.startDate = start
+    if (endDate != null) update.endDate = end
+    if (isActive != null) update.isActive = isActive
+
+    const updated = await Discount.findByIdAndUpdate(id, update, {
+      new: true,
+      runValidators: true,
+    })
+    res.json(updated)
   } catch (error) {
     next(error)
   }

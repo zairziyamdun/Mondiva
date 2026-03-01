@@ -1,6 +1,34 @@
 import Discount from "../models/Discount.js"
 
 /**
+ * Проверяет пересечение двух периодов
+ * (newStart <= existingEnd) AND (newEnd >= existingStart)
+ */
+export function periodsOverlap(newStart, newEnd, existingStart, existingEnd) {
+  const ns = new Date(newStart).getTime()
+  const ne = new Date(newEnd).getTime()
+  const es = new Date(existingStart).getTime()
+  const ee = new Date(existingEnd).getTime()
+  return ns <= ee && ne >= es
+}
+
+/**
+ * Проверяет, есть ли пересечение с другими скидками продукта
+ * @param {import("mongoose").Types.ObjectId|string} productId
+ * @param {Date|string} startDate
+ * @param {Date|string} endDate
+ * @param {string} [excludeId] - ID скидки для исключения (при редактировании)
+ */
+export async function hasOverlappingDiscount(productId, startDate, endDate, excludeId = null) {
+  const discounts = await Discount.find({ productId }).lean()
+  for (const d of discounts) {
+    if (excludeId && String(d._id) === String(excludeId)) continue
+    if (periodsOverlap(startDate, endDate, d.startDate, d.endDate)) return true
+  }
+  return false
+}
+
+/**
  * Проверяет, активна ли скидка: isActive && now между startDate и endDate
  */
 function isDiscountActive(discount) {
