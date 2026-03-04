@@ -194,7 +194,7 @@ export function ProductFormDialog({
           {/* 2) Цена и скидка */}
           <div className="flex gap-3 items-end">
             <div className="flex-1">
-              <Label htmlFor="price" className="text-xs text-muted-foreground">Базовая цена (₽) *</Label>
+              <Label htmlFor="price" className="text-xs text-muted-foreground">Базовая цена (₸) *</Label>
               <Input id="price" type="number" min={0} step={1} {...form.register("price")} className={cn("mt-1", form.formState.errors.price && "border-destructive")} />
               {form.formState.errors.price && <p className="mt-0.5 text-xs text-destructive">{form.formState.errors.price.message}</p>}
             </div>

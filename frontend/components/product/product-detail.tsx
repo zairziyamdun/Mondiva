@@ -227,8 +227,10 @@ export function ProductDetail({ product }: ProductDetailProps) {
           <div className="flex items-start gap-3">
             <Truck className="mt-0.5 h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-sm font-medium text-foreground">Бесплатная доставка от 5 000 &#8381;</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">Курьер, СДЭК, Почта России - 2-5 рабочих дней</p>
+              <p className="text-sm font-medium text-foreground">Бесплатная доставка от 5 000 ₸</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Курьерская доставка по Казахстану — 2–5 рабочих дней
+              </p>
             </div>
           </div>
         </div>

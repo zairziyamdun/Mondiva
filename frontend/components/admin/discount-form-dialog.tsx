@@ -43,7 +43,7 @@ interface DiscountFormDialogProps {
 
 function formatDate(d: string) {
   const date = new Date(d)
-  return date.toLocaleString("ru-RU", {
+  return date.toLocaleString("ru-KZ", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -188,7 +188,7 @@ export function DiscountFormDialog({
         ) : (
           <div className="space-y-6">
             <p className="text-xs text-muted-foreground">
-              Базовая цена: {productPrice.toLocaleString("ru-RU")} ₽
+              Базовая цена: {productPrice.toLocaleString("ru-KZ")} ₸
             </p>
 
             {/* Список существующих скидок */}
@@ -210,7 +210,7 @@ export function DiscountFormDialog({
                     >
                       <div>
                         <span className="font-medium">
-                          {d.type === "percentage" ? `${d.value}%` : `${d.value} ₽`}
+                          {d.type === "percentage" ? `${d.value}%` : `${d.value} ₸`}
                         </span>
                         <span className="ml-2 text-muted-foreground">
                           {formatDate(d.startDate)} — {formatDate(d.endDate)}
@@ -269,7 +269,7 @@ export function DiscountFormDialog({
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">
-                    {type === "percentage" ? "Процент (1–100)" : "Сумма (₽)"}
+                    {type === "percentage" ? "Процент (1–100)" : "Сумма (₸)"}
                   </Label>
                   <Input
                     type="number"
@@ -308,7 +308,7 @@ export function DiscountFormDialog({
                 <p className="text-sm text-muted-foreground">
                   Цена со скидкой:{" "}
                   <span className="font-semibold text-foreground">
-                    {previewPrice.toLocaleString("ru-RU")} ₽
+                    {previewPrice.toLocaleString("ru-KZ")} ₸
                   </span>
                 </p>
               )}

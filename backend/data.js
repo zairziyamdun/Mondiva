@@ -6,7 +6,7 @@ export const users = [
   {
     name: "Администратор",
     email: "admin@mondiva.com",
-    phone: "+7 (999) 000-00-01",
+    phone: "+7 (701) 000-00-01",
     role: "admin",
     password: "Admin123!",
     createdAt: "2025-01-01",
@@ -14,7 +14,7 @@ export const users = [
   {
     name: "Анна Крылова",
     email: "anna@example.com",
-    phone: "+7 (999) 123-45-67",
+    phone: "+7 (702) 123-45-67",
     role: "user",
     password: "Password123",
     createdAt: "2025-01-15",
@@ -22,7 +22,7 @@ export const users = [
   {
     name: "Мария Смирнова",
     email: "maria@example.com",
-    phone: "+7 (999) 234-56-78",
+    phone: "+7 (707) 234-56-78",
     role: "user",
     password: "Password123",
     createdAt: "2025-03-20",
@@ -220,7 +220,7 @@ export const orders = [
     ],
     total: 22700,
     status: "delivered",
-    address: "Москва, ул. Тверская 15, кв. 42",
+    address: "Алматы, пр. Абая 10, кв. 42",
     deliveryMethod: "Курьерская доставка",
     paymentMethod: "Банковская карта",
     createdAt: "2025-11-15",

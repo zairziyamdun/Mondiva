@@ -42,10 +42,10 @@ export function PromoSection() {
               Бесплатная доставка
             </p>
             <h3 className="mt-3 font-serif text-2xl font-bold text-foreground">
-              При заказе от 5 000 &#8381;
+              При заказе от 5 000 ₸
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Доставим ваш заказ бесплатно по всей России. Курьерская доставка, СДЭК или Почта России на выбор.
+              Доставим ваш заказ бесплатно по Казахстану. Курьерская доставка — 2–5 рабочих дней.
             </p>
           </div>
           <div className="flex-1 rounded-3xl bg-accent/10 p-8 lg:p-10">

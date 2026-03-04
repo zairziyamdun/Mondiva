@@ -171,8 +171,8 @@ export function CatalogContent() {
           className="mb-2"
         />
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>{priceRange[0].toLocaleString("ru-RU")} &#8381;</span>
-          <span>{priceRange[1].toLocaleString("ru-RU")} &#8381;</span>
+          <span>{priceRange[0].toLocaleString("ru-KZ")} &#8376;</span>
+          <span>{priceRange[1].toLocaleString("ru-KZ")} &#8376;</span>
         </div>
       </div>
 

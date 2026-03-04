@@ -22,14 +22,14 @@ const steps = [
 
 const deliveryLabels: Record<string, string> = {
   courier: "Курьерская доставка",
-  cdek: "СДЭК",
-  post: "Почта России",
+  pickup: "Самовывоз",
+  post: "Казпочта",
 }
 
 const paymentLabels: Record<string, string> = {
-  card: "Банковская карта",
-  sbp: "СБП",
-  cash: "При получении",
+  kaspi: "Kaspi",
+  halyk: "Halyk",
+  jusan: "Jusan",
 }
 
 export function CheckoutContent() {
@@ -37,7 +37,7 @@ export function CheckoutContent() {
   const [step, setStep] = useState(1)
   const [address, setAddress] = useState({ city: "", street: "", apartment: "", phone: "", name: "" })
   const [delivery, setDelivery] = useState("courier")
-  const [payment, setPayment] = useState("card")
+  const [payment, setPayment] = useState("kaspi")
   const [orderPlaced, setOrderPlaced] = useState(false)
   const [orderId, setOrderId] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -85,7 +85,7 @@ export function CheckoutContent() {
     )
   }
 
-  const deliveryCost = total >= 5000 ? 0 : delivery === "courier" ? 500 : delivery === "cdek" ? 350 : 250
+  const deliveryCost = delivery === "pickup" ? 0 : total >= 50000 ? 0 : delivery === "courier" ? 1500 : 1000
   const grandTotal = total + deliveryCost
 
   return (
@@ -139,7 +139,7 @@ export function CheckoutContent() {
                   id="phone"
                   value={address.phone}
                   onChange={(e) => setAddress({ ...address, phone: e.target.value })}
-                  placeholder="+7 (999) 123-45-67"
+                  placeholder="+7 (707) 123-45-67"
                   className="mt-1"
                 />
               </div>
@@ -150,19 +150,19 @@ export function CheckoutContent() {
                 id="city"
                 value={address.city}
                 onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                placeholder="Москва"
+                placeholder="Алматы"
                 className="mt-1"
               />
             </div>
             <div>
               <Label htmlFor="street" className="text-xs text-muted-foreground">Улица, дом</Label>
-              <Input
-                id="street"
-                value={address.street}
-                onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                placeholder="ул. Тверская 15"
-                className="mt-1"
-              />
+                <Input
+                  id="street"
+                  value={address.street}
+                  onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                  placeholder="пр. Абая 10"
+                  className="mt-1"
+                />
             </div>
             <div>
               <Label htmlFor="apt" className="text-xs text-muted-foreground">Квартира / офис</Label>
@@ -186,9 +186,9 @@ export function CheckoutContent() {
             <h2 className="font-serif text-lg font-bold text-foreground">Способ доставки</h2>
             <RadioGroup value={delivery} onValueChange={setDelivery} className="space-y-3">
               {[
-                { value: "courier", label: "Курьерская доставка", desc: "1-2 рабочих дня", price: total >= 5000 ? "Бесплатно" : "500 \u20BD" },
-                { value: "cdek", label: "СДЭК", desc: "2-4 рабочих дня", price: total >= 5000 ? "Бесплатно" : "350 \u20BD" },
-                { value: "post", label: "Почта России", desc: "5-10 рабочих дней", price: total >= 5000 ? "Бесплатно" : "250 \u20BD" },
+                { value: "courier", label: "Курьерская доставка", desc: "1-2 рабочих дня по Казахстану", price: total >= 50000 ? "Бесплатно" : "1 500 ₸" },
+                { value: "pickup", label: "Самовывоз", desc: "Из пунктов выдачи в вашем городе", price: "Бесплатно" },
+                { value: "post", label: "Казпочта", desc: "5-10 рабочих дней", price: total >= 50000 ? "Бесплатно" : "1 000 ₸" },
               ].map((opt) => (
                 <label
                   key={opt.value}
@@ -225,9 +225,9 @@ export function CheckoutContent() {
             <h2 className="font-serif text-lg font-bold text-foreground">Способ оплаты</h2>
             <RadioGroup value={payment} onValueChange={setPayment} className="space-y-3">
               {[
-                { value: "card", label: "Банковская карта", desc: "Visa, Mastercard, МИР" },
-                { value: "sbp", label: "СБП", desc: "Система быстрых платежей" },
-                { value: "cash", label: "При получении", desc: "Наличными или картой" },
+                { value: "kaspi", label: "Kaspi", desc: "Оплата через Kaspi.kz" },
+                { value: "halyk", label: "Halyk", desc: "Оплата картами Halyk Bank" },
+                { value: "jusan", label: "Jusan", desc: "Оплата через Jusan" },
               ].map((opt) => (
                 <label
                   key={opt.value}
@@ -274,13 +274,13 @@ export function CheckoutContent() {
               <div className="rounded-xl bg-secondary p-3">
                 <p className="text-xs text-muted-foreground">Доставка</p>
                 <p className="font-medium text-foreground">
-                  {delivery === "courier" ? "Курьерская доставка" : delivery === "cdek" ? "СДЭК" : "Почта России"}
+                  {delivery === "courier" ? "Курьерская доставка" : delivery === "pickup" ? "Самовывоз" : "Казпочта"}
                 </p>
               </div>
               <div className="rounded-xl bg-secondary p-3">
                 <p className="text-xs text-muted-foreground">Оплата</p>
                 <p className="font-medium text-foreground">
-                  {payment === "card" ? "Банковская карта" : payment === "sbp" ? "СБП" : "При получении"}
+                  {payment === "kaspi" ? "Kaspi" : payment === "halyk" ? "Halyk" : "Jusan"}
                 </p>
               </div>
             </div>

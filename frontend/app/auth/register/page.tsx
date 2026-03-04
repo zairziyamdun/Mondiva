@@ -23,8 +23,14 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+    const trimmedPhone = phone.trim()
+    const kzPhoneRegex = /^\+7 \(7\d{2}\) \d{3}-\d{2}-\d{2}$/
+    if (trimmedPhone && !kzPhoneRegex.test(trimmedPhone)) {
+      setError("Введите телефон в формате +7 (7XX) XXX-XX-XX")
+      return
+    }
     setLoading(true)
-    const result = await register({ name: name.trim(), email: email.trim(), password, phone: phone.trim() || undefined })
+    const result = await register({ name: name.trim(), email: email.trim(), password, phone: trimmedPhone || undefined })
     setLoading(false)
     if (result.ok) {
       window.location.href = "/account"
@@ -87,7 +93,7 @@ export default function RegisterPage() {
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+7 (999) 123-45-67"
+                placeholder="+7 (707) 123-45-67"
                 className="mt-1"
               />
             </div>

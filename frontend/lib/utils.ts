@@ -5,11 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-/** Форматирование цены в рублях (ru-RU) */
+/** Форматирование цены в тенге (KZT, ru-KZ) */
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat("ru-RU", {
+  return new Intl.NumberFormat("ru-KZ", {
     style: "currency",
-    currency: "RUB",
+    currency: "KZT",
     minimumFractionDigits: 0,
   }).format(price)
 }
@@ -19,7 +19,7 @@ export function formatDate(value: string | Date | undefined): string {
   if (!value) return ""
   const d = typeof value === "string" ? new Date(value) : value
   if (Number.isNaN(d.getTime())) return String(value)
-  return new Intl.DateTimeFormat("ru-RU", {
+  return new Intl.DateTimeFormat("ru-KZ", {
     day: "numeric",
     month: "long",
     year: "numeric",
