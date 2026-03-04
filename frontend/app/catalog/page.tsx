@@ -1,8 +1,9 @@
+import { Suspense } from "react"
 import { SiteHeader } from "@/components/site-header"
 import { SiteFooter } from "@/components/site-footer"
 import { CatalogContent } from "@/components/catalog/catalog-content"
 
-export default function CatalogPage() {
+function CatalogPageInner() {
   return (
     <>
       <SiteHeader />
@@ -17,5 +18,13 @@ export default function CatalogPage() {
       </main>
       <SiteFooter />
     </>
+  )
+}
+
+export default function CatalogPage() {
+  return (
+    <Suspense fallback={null}>
+      <CatalogPageInner />
+    </Suspense>
   )
 }
