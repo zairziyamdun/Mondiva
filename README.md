@@ -38,22 +38,6 @@
 | **Admin** | Dashboard, products CRUD, categories, orders and status updates, users, return requests; product-level discount management (percentage/fixed, date range) |
 | **Backend** | REST API, Helmet, CORS, rate limiting, express-validator; MongoDB with Mongoose; optional transaction support for order creation (replica set) |
 
----
-
-## Screenshots
-
-| Storefront | Catalog & Product | Checkout |
-|------------|-------------------|----------|
-| *Add screenshot of homepage* | *Add screenshot of catalog/product page* | *Add screenshot of checkout flow* |
-
-| Admin — Products | Admin — Orders |
-|------------------|----------------|
-| *Add screenshot of admin products* | *Add screenshot of admin orders* |
-
-> Replace the placeholders above with screenshots from [mondiva.vercel.app](https://mondiva.vercel.app/) to showcase the UI.
-
----
-
 ## Tech Stack
 
 | Layer | Technologies |
