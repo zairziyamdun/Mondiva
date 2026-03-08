@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/Mondiva-E-Commerce-1a1714?style=for-the-badge&labelColor=1a1714&color=c9a86c" alt="Mondiva" />
-</p>
-
 <h1 align="center">Mondiva</h1>
 <p align="center">
   <strong>Premium women's fashion e‑commerce</strong> — full‑stack marketplace with admin panel, roles, and Kazakhstan localization (KZT, Kaspi, Halyk, Jusan).
