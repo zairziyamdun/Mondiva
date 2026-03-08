@@ -10,9 +10,9 @@
 <p align="center">
   <a href="https://mondiva.vercel.app/">🌐 Live Demo</a>
   &nbsp;·&nbsp;
-  <a href="#-tech-stack">Tech Stack</a>
+  <a>Tech Stack</a>
   &nbsp;·&nbsp;
-  <a href="#-getting-started">Getting Started</a>
+  <a>Getting Started</a>
 </p>
 
 <p align="center">
@@ -192,13 +192,6 @@ cd frontend && npm run dev
 | **Returns** | `GET /api/returns`, `GET /api/returns/my`, `PATCH /api/returns/:id` |
 | **Discounts** | `GET /api/discounts`, `GET /api/discounts/product/:productId`, `POST/PATCH/DELETE /api/discounts` |
 
----
-
-## License
-
-ISC — see [LICENSE](LICENSE) if present.
-
----
 
 <p align="center">
   <sub>Built for portfolio and learning. Live demo: <a href="https://mondiva.vercel.app/">mondiva.vercel.app</a></sub>
