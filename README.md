@@ -194,5 +194,5 @@ cd frontend && npm run dev
 
 
 <p align="center">
-  <sub>Built for portfolio and learning. Live demo: <a href="https://mondiva.vercel.app/">mondiva.vercel.app</a></sub>
+  <sub>Built for portfolio and learning. Live demo: <a>mondiva.vercel.app</a></sub>
 </p>
